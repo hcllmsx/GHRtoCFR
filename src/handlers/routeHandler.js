@@ -26,14 +26,14 @@ export async function handleFavicon() {
  * 处理 scripts/main.js 请求
  */
 export async function handleMainScript() {
-  // 直接返回JS内容，不使用模块导入
-  const scriptContent = `
-function triggerSyncAll() {
+  // 直接返回JS内容，不使用模板字符串
+  const scriptContent = 
+`function triggerSyncAll() {
   const syncAllButton = document.getElementById('syncAllButton');
   const syncLog = document.getElementById('syncLog');
   
   syncAllButton.disabled = true;
-  syncLog.innerHTML += '开始同步所有仓库...\n';
+  syncLog.innerHTML += '开始同步所有仓库...\\n';
   
   fetch('/sync')
     .then(function(response) {
@@ -259,7 +259,7 @@ function refreshStatus() {
           
           const apiInfoElement = document.querySelector('.api-info');
           if (apiInfoElement) {
-            apiInfoElement.innerHTML = \`GitHub API 速率: <span class="api-count">\${data.apiRateLimit.remaining}/\${data.apiRateLimit.limit}</span> 次 (<span class="api-reset">重置时间: \${resetTime}</span>)\`;
+            apiInfoElement.innerHTML = 'GitHub API 速率: <span class="api-count">' + data.apiRateLimit.remaining + '/' + data.apiRateLimit.limit + '</span> 次 (<span class="api-reset">重置时间: ' + resetTime + '</span>)';
           }
         } catch (e) {
           console.error("API速率时间格式化错误:", e);
@@ -267,7 +267,7 @@ function refreshStatus() {
       }
     })
     .catch(error => {
-      syncLog.innerHTML += \`\\n获取状态失败: \${error.message}\\n\`;
+      syncLog.innerHTML += '\\n获取状态失败: ' + error.message + '\\n';
       syncAllButton.disabled = false;
     });
 }`;
