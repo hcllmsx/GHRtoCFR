@@ -1,3 +1,5 @@
+// 导出JS内容作为默认导出
+export default `
 function triggerSyncAll() {
   const syncAllButton = document.getElementById('syncAllButton');
   const syncLog = document.getElementById('syncLog');
@@ -219,11 +221,11 @@ function refreshStatus() {
       }
       
       // 添加更新成功日志
-      syncLog.innerHTML += '\n[' + new Date().toLocaleTimeString() + '] 已刷新仓库状态\n';
+      syncLog.innerHTML += '\\n[' + new Date().toLocaleTimeString() + '] 已刷新仓库状态\\n';
       syncLog.scrollTop = syncLog.scrollHeight;
     })
     .catch(error => {
-      syncLog.innerHTML += '\n刷新状态失败: ' + error.message + '\n';
+      syncLog.innerHTML += '\\n刷新状态失败: ' + error.message + '\\n';
       syncLog.scrollTop = syncLog.scrollHeight;
     });
 }
@@ -245,4 +247,5 @@ setInterval(function() {
   } else {
     pageIdleTime = 0;
   }
-}, 1000); 
+}, 1000);
+`; 

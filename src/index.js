@@ -11,7 +11,9 @@ import {
   handleSync,
   handleHome,
   updateLastCheckTime,
-  getLastCheckTime
+  getLastCheckTime,
+  handleMainScript,
+  handleMainStyle
 } from './handlers/routeHandler.js';
 
 import { getRepoConfigs } from './utils/repoUtils.js';
@@ -46,6 +48,15 @@ export default {
       // 处理 favicon.svg 请求
       if (pathname === "/favicon.svg") {
         return handleFavicon();
+      }
+      
+      // 处理静态资源
+      if (pathname === "/scripts/main.js") {
+        return handleMainScript();
+      }
+      
+      if (pathname === "/styles/main.css") {
+        return handleMainStyle();
       }
       
       // 处理同步日志流

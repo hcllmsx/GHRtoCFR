@@ -27,6 +27,40 @@ export async function handleFavicon() {
 }
 
 /**
+ * 处理 scripts/main.js 请求
+ */
+export async function handleMainScript() {
+  // 导入主JS文件
+  const mainJs = await import('../scripts/main.js');
+  // 获取main.js的内容
+  const scriptContent = mainJs.default;
+  
+  return new Response(scriptContent, {
+    headers: { 
+      "Content-Type": "application/javascript",
+      "Cache-Control": "public, max-age=3600"
+    }
+  });
+}
+
+/**
+ * 处理 styles/main.css 请求
+ */
+export async function handleMainStyle() {
+  // 导入CSS文件
+  const mainCss = await import('../styles/main.css', { assert: { type: 'text' } });
+  // 获取CSS内容
+  const styleContent = mainCss.default;
+  
+  return new Response(styleContent, {
+    headers: { 
+      "Content-Type": "text/css",
+      "Cache-Control": "public, max-age=3600"
+    }
+  });
+}
+
+/**
  * 处理 API 状态请求
  */
 export async function handleApiStatus(worker, env) {

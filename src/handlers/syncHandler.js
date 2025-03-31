@@ -182,29 +182,41 @@ export async function checkNeedUpdate(env, repo, currentVersion, path) {
         // 检查文件是否存在于R2中
         let actualFileCount = 0;
         let hasCompleteFiles = false;
+        let filesExistInR2 = false;
         
         if (env.R2_BUCKET) {
           try {
             // 构建基本的路径前缀
             const prefix = path && path.startsWith("/") ? path.substring(1) : path;
             const basePath = prefix ? `${prefix}/` : "";
+            console.log(`检查R2中 ${basePath} 路径下是否存在 ${repo} 的文件`);
+            
+            // 列出存储桶中可能属于该仓库的文件
             const objects = await env.R2_BUCKET.list({ prefix: basePath });
             
             if (objects && objects.objects && objects.objects.length > 0) {
               // 过滤这个仓库的文件
               const repoFiles = objects.objects.filter(obj => isFileFromRepo(obj.key, repo));
               actualFileCount = repoFiles.length;
+              console.log(`在R2中找到 ${actualFileCount} 个属于 ${repo} 的文件`);
               
-              // 更新文件路径记录
-              if (repoFiles.length > 0 && (!storedVersionInfo.filePaths || storedVersionInfo.filePaths.length !== repoFiles.length)) {
-                const updatedVersionInfo = { ...storedVersionInfo };
-                updatedVersionInfo.filePaths = repoFiles.map(obj => obj.key);
-                await env.SYNC_STATUS.put(key, JSON.stringify(updatedVersionInfo));
-                console.log(`已从R2更新 ${repo} 的文件路径记录: ${updatedVersionInfo.filePaths.length}个文件`);
+              // 判断是否确实存在文件
+              if (actualFileCount > 0) {
+                filesExistInR2 = true;
+                console.log(`确认在R2中存在 ${repo} 的文件`);
+                
+                // 更新文件路径记录(如果需要)
+                if (!storedVersionInfo.filePaths || storedVersionInfo.filePaths.length !== repoFiles.length) {
+                  const updatedVersionInfo = { ...storedVersionInfo };
+                  updatedVersionInfo.filePaths = repoFiles.map(obj => obj.key);
+                  await env.SYNC_STATUS.put(key, JSON.stringify(updatedVersionInfo));
+                  console.log(`已更新 ${repo} 的文件路径记录: ${updatedVersionInfo.filePaths.length}个文件`);
+                }
+              } else {
+                console.log(`在R2中未找到任何属于 ${repo} 的文件，需要重新同步`);
               }
               
               // 判断文件是否完整
-              // 如果无法获取GitHub上的文件数量，则以KV中的filePaths列表作为参考
               const referenceCount = expectedAssetCount > 0 ? expectedAssetCount : 
                                    (storedVersionInfo.filePaths && storedVersionInfo.filePaths.length > 0 ? 
                                     storedVersionInfo.filePaths.length : 0);
@@ -215,17 +227,33 @@ export async function checkNeedUpdate(env, repo, currentVersion, path) {
               } else if (referenceCount > 0) {
                 console.log(`${repo} 在R2中只有 ${actualFileCount} 个文件，少于预期的 ${referenceCount} 个文件，需要重新同步`);
               }
+            } else {
+              console.log(`在R2中未能列出任何 ${repo} 相关文件，需要重新同步`);
+            }
+            
+            // 如果KV记录了文件路径，但实际上文件不存在，则需要重新同步
+            if (storedVersionInfo.filePaths && storedVersionInfo.filePaths.length > 0 && !filesExistInR2) {
+              console.log(`KV记录了 ${storedVersionInfo.filePaths.length} 个文件路径，但实际上R2中不存在文件，需要重新同步`);
+              return true;
             }
           } catch (error) {
             console.error(`检查R2中文件时出错: ${error.message}`);
+            // 出错时保守处理，假设需要重新同步
+            return true;
           }
         }
         
-        // 如果版本相同，再检查文件是否完整
+        // 如果版本相同，再检查文件是否完整且存在
         if (storedVersionInfo.version === currentVersion) {
           // 如果GitHub上的期望文件数量大于0，且R2中的实际文件数量小于期望数量，表明需要重新同步
           if (expectedAssetCount > 0 && actualFileCount < expectedAssetCount) {
             console.log(`${repo} 的版本 ${currentVersion} 相同，但文件不完整(${actualFileCount}/${expectedAssetCount})，需要重新同步`);
+            return true;
+          }
+          
+          // 如果没有找到任何文件，也需要重新同步
+          if (!filesExistInR2) {
+            console.log(`${repo} 版本相同但在R2中未找到文件，需要重新同步`);
             return true;
           }
           
@@ -238,7 +266,7 @@ export async function checkNeedUpdate(env, repo, currentVersion, path) {
             return true;
           }
           
-          console.log(`${repo} 的版本 ${currentVersion} 已经是最新的，且文件完整，无需更新`);
+          console.log(`${repo} 的版本 ${currentVersion} 已经是最新的，且文件完整存在，无需更新`);
           return false;
         }
         
