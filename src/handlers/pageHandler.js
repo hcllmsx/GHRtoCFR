@@ -60,9 +60,7 @@ export async function loadTemplate() {
     <div class="api-info">{{API_RATE_LIMIT}}</div>
   </div>
   
-  <script>
-    {{JS_CONTENT}}
-  </script>
+  <script src="/scripts/main.js"></script>
 </body>
 </html>`;
     }
@@ -434,250 +432,6 @@ export async function generateStatusPage(worker, lastCheckTime) {
     }
   }`;
   
-  const jsContent = `function triggerSyncAll() {
-  const syncAllButton = document.getElementById('syncAllButton');
-  const syncLog = document.getElementById('syncLog');
-  
-  syncAllButton.disabled = true;
-  syncLog.innerHTML += '开始同步所有仓库...\n';
-  
-  fetch('/sync')
-    .then(function(response) {
-      if (!response.body) {
-        throw new Error('浏览器不支持流式响应');
-      }
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      
-      // 添加变量跟踪同步状态
-      let syncComplete = false;
-      let allReposComplete = false;
-      
-      function readStream() {
-        reader.read().then(function(result) {
-          if (result.done) {
-            if (!syncComplete) {
-              syncLog.innerHTML += '\n读取同步日志流结束，但未收到完成信号。5秒后自动刷新仓库状态...\n';
-              setTimeout(function() { refreshStatus(); }, 5000);
-            }
-            return;
-          }
-          
-          const text = decoder.decode(result.value, { stream: true });
-          syncLog.innerHTML += text;
-          syncLog.scrollTop = syncLog.scrollHeight;
-          
-          // 检查是否包含明确的完成信号
-          if (text.includes('所有同步任务完成')) {
-            syncComplete = true;
-            allReposComplete = true;
-            syncLog.innerHTML += '\n所有仓库同步完成！3秒后自动刷新仓库状态...\n';
-            setTimeout(function() { refreshStatus(); }, 3000);
-            return;
-          }
-          
-          // 检查是否有错误信号
-          if (text.includes('同步过程中出错')) {
-            syncComplete = true;
-            syncLog.innerHTML += '\n同步过程中出错。5秒后自动刷新仓库状态...\n';
-            setTimeout(function() { refreshStatus(); }, 5000);
-            return;
-          }
-          
-          // 不要过早地结束日志读取，继续读取流
-          readStream();
-        }).catch(function(error) {
-          syncLog.innerHTML += '\n日志流读取错误: ' + error.message + '\n请手动刷新页面查看最新状态...\n';
-          setTimeout(function() { refreshStatus(); }, 5000);
-        });
-      }
-      
-      readStream();
-    })
-    .catch(function(error) {
-      syncLog.innerHTML += '\n启动同步失败: ' + error.message + '\n请检查网络连接或刷新页面重试...\n';
-      syncAllButton.disabled = false;
-    });
-}
-
-function triggerSyncRepo(repo) {
-  const repoId = repo.replace('/', '-');
-  const syncButton = document.getElementById('sync-' + repoId);
-  const syncLog = document.getElementById('syncLog');
-  
-  syncButton.disabled = true;
-  syncLog.innerHTML += '开始同步仓库: ' + repo + '...\n';
-  
-  fetch('/sync?repo=' + encodeURIComponent(repo))
-    .then(function(response) {
-      if (!response.body) {
-        throw new Error('浏览器不支持流式响应');
-      }
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      
-      // 添加变量跟踪同步状态
-      let syncComplete = false;
-      
-      function readStream() {
-        reader.read().then(function(result) {
-          if (result.done) {
-            if (!syncComplete) {
-              syncLog.innerHTML += '\n读取同步日志流结束，但未收到完成信号。5秒后自动刷新仓库状态...\n';
-              setTimeout(function() { refreshStatus(); }, 5000);
-            }
-            return;
-          }
-          
-          const text = decoder.decode(result.value, { stream: true });
-          syncLog.innerHTML += text;
-          syncLog.scrollTop = syncLog.scrollHeight;
-          
-          // 检查是否包含该仓库的完成信号
-          if (text.includes(repo + ' 同步完成')) {
-            syncComplete = true;
-            syncLog.innerHTML += '\n仓库 ' + repo + ' 同步完成！3秒后自动刷新仓库状态...\n';
-            setTimeout(function() { refreshStatus(); }, 3000);
-            return;
-          }
-          
-          // 检查是否有错误信号
-          if (text.includes('同步 ' + repo + ' 时出错') || text.includes('同步过程中出错')) {
-            syncComplete = true;
-            syncLog.innerHTML += '\n仓库 ' + repo + ' 同步出错。5秒后自动刷新仓库状态...\n';
-            setTimeout(function() { refreshStatus(); }, 5000);
-            return;
-          }
-          
-          // 继续读取流
-          readStream();
-        }).catch(function(error) {
-          syncLog.innerHTML += '\n日志流读取错误: ' + error.message + '\n请手动刷新页面查看最新状态...\n';
-          setTimeout(function() { refreshStatus(); }, 5000);
-        });
-      }
-      
-      readStream();
-    })
-    .catch(function(error) {
-      syncLog.innerHTML += '\n启动同步失败: ' + error.message + '\n请检查网络连接或刷新页面重试...\n';
-      syncButton.disabled = false;
-    });
-}
-
-function clearSyncLog() {
-  document.getElementById('syncLog').innerHTML = '';
-}
-
-// 只刷新状态，不刷新整个页面或清空日志
-function refreshStatus() {
-  const syncAllButton = document.getElementById('syncAllButton');
-  const syncLog = document.getElementById('syncLog');
-  
-  // 从API获取最新状态
-  fetch('/api/status')
-    .then(response => response.json())
-    .then(data => {
-      // 更新仓库状态表格
-      if (data.repos && data.repos.length > 0) {
-        data.repos.forEach(repo => {
-          const repoId = repo.repo.replace('/', '-');
-          const row = document.getElementById('repo-' + repoId);
-          
-          if (row) {
-            // 更新版本
-            row.cells[1].textContent = repo.version;
-            
-            // 更新日期
-            if (repo.date && repo.date !== "-") {
-              try {
-                const date = new Date(repo.date);
-                row.cells[2].textContent = date.toLocaleString('zh-CN', {
-                  year: 'numeric', month: 'numeric', day: 'numeric',
-                  hour: '2-digit', minute: '2-digit', second: '2-digit',
-                  hour12: false
-                });
-              } catch (e) {
-                row.cells[2].textContent = repo.date;
-              }
-            }
-            
-            // 更新状态
-            const statusCell = row.cells[4].querySelector('.status');
-            if (statusCell) {
-              // 移除旧的状态类
-              statusCell.classList.remove('status-success', 'status-pending', 'status-error');
-              
-              // 添加新的状态类和文本
-              let statusClass = "";
-              let statusText = "";
-              
-              if (repo.status === "error") {
-                statusClass = "status-error";
-                statusText = "失败";
-              } else if (repo.status === "updated" || repo.status === "latest" || repo.status === "synced") {
-                statusClass = "status-success";
-                statusText = "最新";
-              } else if (repo.status === "pending") {
-                statusClass = "status-pending";
-                statusText = "待同步";
-              } else if (repo.status === "syncing") {
-                statusClass = "status-pending";
-                statusText = "同步中";
-              } else {
-                statusClass = "status-pending";
-                statusText = repo.status || "未知";
-              }
-              
-              statusCell.classList.add(statusClass);
-              statusCell.textContent = statusText;
-              
-              // 更新提示信息
-              if (repo.message) {
-                statusCell.title = repo.message;
-              }
-            }
-            
-            // 启用同步按钮
-            const syncButton = document.getElementById('sync-' + repoId);
-            if (syncButton) {
-              syncButton.disabled = false;
-            }
-          }
-        });
-      }
-      
-      // 启用"同步所有"按钮
-      syncAllButton.disabled = false;
-      
-      // 如果有API速率限制信息，更新它
-      if (data.apiRateLimit) {
-        try {
-          const resetTimestamp = data.apiRateLimit.reset;
-          const resetDate = new Date(resetTimestamp * 1000);
-          const resetTime = resetDate.toLocaleString('zh-CN', {
-            year: 'numeric', month: 'numeric', day: 'numeric',
-            hour: '2-digit', minute: '2-digit', second: '2-digit',
-            hour12: false
-          });
-          
-          const apiInfoElement = document.querySelector('.api-info');
-          if (apiInfoElement) {
-            apiInfoElement.innerHTML = \`GitHub API 速率: <span class="api-count">\${data.apiRateLimit.remaining}/\${data.apiRateLimit.limit}</span> 次 (<span class="api-reset">重置时间: \${resetTime}</span>)\`;
-          }
-        } catch (e) {
-          console.error("API速率时间格式化错误:", e);
-        }
-      }
-    })
-    .catch(error => {
-      syncLog.innerHTML += \`\n获取状态失败: \${error.message}\n\`;
-      syncAllButton.disabled = false;
-    });
-}`;
-  
   // 获取HTML模板
   let html = await loadTemplate();
   if (!html) {
@@ -705,16 +459,17 @@ function refreshStatus() {
     .replace(/{{TABLE_ROWS}}/g, tableRows)
     .replace(/{{LAST_CHECK_TIME}}/g, lastCheckTimeStr)
     .replace(/{{API_RATE_LIMIT}}/g, apiRateLimitInfo)
-    .replace(/{{CSS_CONTENT}}/g, cssContent)
-    .replace(/{{JS_CONTENT}}/g, jsContent);
+    .replace(/{{CSS_CONTENT}}/g, cssContent);
   
   // 如果正在同步，添加额外的脚本使同步状态可见
   if (worker.isSyncing) {
-    html = html.replace('</script>', `
-      document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('syncAllButton').disabled = true;
-      });
-    </script>`);
+    html = html.replace('</body>', `
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          document.getElementById('syncAllButton').disabled = true;
+        });
+      </script>
+    </body>`);
   }
   
   return new Response(html, {
