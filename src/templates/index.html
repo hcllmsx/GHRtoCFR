@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>GHRtoCFR - GitHub Releases to Cloudflare R2</title>
+  <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+  <h1>GitHub Releases to Cloudflare R2</h1>
+  {{ERROR_MESSAGE}}
+  {{INFO_MESSAGE}}
+  
+  <table>
+    <thead>
+      <tr>
+        <th>仓库</th>
+        <th>最新版本</th>
+        <th>更新日期</th>
+        <th>存储路径</th>
+        <th>状态</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{TABLE_ROWS}}
+    </tbody>
+  </table>
+  
+  <div id="syncLogContainer" class="sync-log-container">
+    <div class="sync-log-header">
+      <h3 class="sync-log-title">同步日志</h3>
+      <div class="sync-log-controls">
+        <button class="sync-all-btn" id="syncAllButton" onclick="triggerSyncAll()">同步所有仓库</button>
+        <button class="sync-log-clear" onclick="clearSyncLog()">清空日志</button>
+        <button class="refresh-btn" onclick="refreshStatus()">刷新状态</button>
+      </div>
+    </div>
+    <div id="syncLog" class="sync-log"></div>
+  </div>
+  
+  <div class="footer">
+    <div class="last-check">最后检查时间: {{LAST_CHECK_TIME}}</div>
+    <div class="api-info">{{API_RATE_LIMIT}}</div>
+  </div>
+  
+  <script src="/scripts/main.js"></script>
+</body>
+</html> 
