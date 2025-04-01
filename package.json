@@ -1,0 +1,16 @@
+{
+  "name": "ghr-to-cfr",
+  "version": "1.0.0",
+  "description": "GitHub Releases to Cloudflare R2 Sync Worker",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "echo 'No build step required'",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20240208.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.6.0"
+  }
+} 
