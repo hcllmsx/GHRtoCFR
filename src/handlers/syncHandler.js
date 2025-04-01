@@ -456,15 +456,20 @@ export async function downloadAndUploadAssets(repo, assets, path, env) {
     const uploadedPaths = [];
     
     // 处理每个资源文件
-    for (const asset of validAssets) {
+    for (let i = 0; i < validAssets.length; i++) {
+      const asset = validAssets[i];
       try {
+        console.log(`正在处理第 ${i + 1}/${validAssets.length} 个文件: ${asset.name}`);
         const platform = determineOSType(asset.name);
+        console.log(`文件 ${asset.name} 属于 ${platform} 平台`);
         const uploadedPath = await downloadAndUploadAsset(asset, repo, path, platform, env);
         if (uploadedPath) {
           uploadedPaths.push(uploadedPath);
+          console.log(`文件 ${asset.name} 处理完成\n`);
         }
       } catch (error) {
         console.error(`处理文件 ${asset.name} 失败:`, error);
+        console.log(`\n`); // 添加空行
       }
     }
     

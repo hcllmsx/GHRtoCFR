@@ -270,14 +270,6 @@ function refreshStatus() {
       syncLog.innerHTML += '\\n获取状态失败: ' + error.message + '\\n';
       syncAllButton.disabled = false;
     });
-}`;
-  
-  return new Response(scriptContent, {
-    headers: { 
-      "Content-Type": "application/javascript",
-      "Cache-Control": "no-cache"
-    }
-  });
 }
 
 /**
@@ -509,8 +501,74 @@ tr:hover {
  * 处理 API 状态请求
  */
 export async function handleApiStatus(worker, env) {
+  // 获取最新的仓库配置
+  const repoConfigs = getRepoConfigs(env);
+  
+  // 从KV中获取最新的状态信息
+  const updatedRepos = [];
+  if (repoConfigs.length > 0) {
+    for (const config of repoConfigs) {
+      try {
+        const repoKey = `repo:${config.repo}`;
+        const versionInfoStr = await env.SYNC_STATUS.get(repoKey);
+        
+        if (versionInfoStr) {
+          const versionInfo = JSON.parse(versionInfoStr);
+          
+          // 处理状态映射，确保前端显示正确
+          let status = versionInfo.status || "latest";
+          let message = "";
+          
+          // 根据状态设置前端显示的消息
+          if (status === "synced") {
+            status = "latest"; // 在前端将synced映射为latest
+            message = "当前已是最新版本";
+          } else if (status === "error") {
+            message = versionInfo.error || "同步失败";
+          } else if (status === "syncing") {
+            message = "正在同步中...";
+          } else if (status === "pending") {
+            message = "等待同步";
+          }
+          
+          updatedRepos.push({
+            repo: config.repo,
+            version: versionInfo.version || "未知",
+            date: versionInfo.lastUpdate || "-",
+            path: config.path,
+            status: status,
+            message: message
+          });
+        } else {
+          // 未同步过，创建临时记录
+          updatedRepos.push({
+            repo: config.repo,
+            version: "未同步",
+            date: "-",
+            path: config.path,
+            status: "pending",
+            message: "尚未同步，点击\"同步仓库\"按钮开始同步"
+          });
+        }
+      } catch (error) {
+        console.error(`加载仓库 ${config.repo} 状态信息失败:`, error);
+        updatedRepos.push({
+          repo: config.repo,
+          version: "未知",
+          date: "-",
+          path: config.path,
+          status: "error",
+          message: `加载状态失败: ${error.message}`
+        });
+      }
+    }
+  }
+  
+  // 更新worker中的状态
+  worker.syncedRepos = updatedRepos;
+  
   return new Response(JSON.stringify({
-    repos: worker.syncedRepos,
+    repos: updatedRepos,
     lastCheck: lastCheckTime ? new Date(lastCheckTime * 1000).toISOString() : null,
     apiRateLimit: worker.apiRateLimit,
     error: worker.errorMessage,
@@ -614,7 +672,7 @@ export async function handleSync(request, worker, env, ctx) {
     try {
       for (const config of syncTargets) {
         const { repo, path } = config;
-        await writer.write(encoder.encode(`开始同步 ${repo}...\n`));
+        await writer.write(encoder.encode(`开始同步仓库: ${repo}...\n`));
         
         try {
           // 获取最新版本信息
@@ -708,6 +766,7 @@ export async function handleSync(request, worker, env, ctx) {
             .join(', ');
           
           await writer.write(encoder.encode(`${repo} 同步完成，版本 ${tag_name}，共上传 ${uploadedPaths.length} 个文件 (${platformSummary})\n`));
+          await writer.write(encoder.encode(`仓库 ${repo} 同步完成！3秒后自动刷新仓库状态...\n\n`));
         } catch (error) {
           await writer.write(encoder.encode(`同步 ${repo} 时出错: ${error.message}\n`));
           // 更新为错误状态
