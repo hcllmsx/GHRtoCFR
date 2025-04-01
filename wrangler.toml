@@ -1,6 +1,7 @@
 name = "ghr-to-cfr"
 main = "./dist/index.js"
 compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
 
 [site]
 bucket = "./public"
@@ -8,15 +9,6 @@ bucket = "./public"
 [build]
 command = "npm run build"
 watch_dir = "src"
-
-[[rules]]
-type = "ESModule"
-globs = ["**/*.js"]
-
-[[rules]]
-type = "Text"
-globs = ["**/*.css"]
-fallthrough = true
 
 [vars]
 ENVIRONMENT = "production"

@@ -1,5 +1,8 @@
 # 忽略以下文件夹
 .wrangler/
 node_modules/
+dist/
+public/
+temp/
 
 # 忽略以下文件
