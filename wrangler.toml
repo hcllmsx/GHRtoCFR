@@ -1,21 +1,33 @@
-name = "ghrtocfr"
+name = "GHRtoCFR"
 main = "src/index.js"
-compatibility_date = "2025-01-01"
+compatibility_date = "2024-01-01"
 
-[triggers]
-crons = ["0 0 * * *"]
+[site]
+bucket = "./public"
 
-[[r2_buckets]]
-binding = "R2_BUCKET"
-bucket_name = "github-releases" # 替换为您已创建的实际存储桶名称
+[build]
+command = "npm run build"
+watch_dir = "src"
+
+[[rules]]
+type = "ESModule"
+globs = ["**/*.js"]
+
+[[rules]]
+type = "CSS"
+globs = ["**/*.css"]
+
+[vars]
+ENVIRONMENT = "production"
 
 [[kv_namespaces]]
 binding = "SYNC_STATUS"
-id = "671e98de4e3c4d44a08cba27826cf7b3" # 替换为您创建的KV命名空间ID
+id = "your-kv-namespace-id"
+preview_id = "your-preview-kv-namespace-id"
 
-[vars]
-REPO_1 = "2dust/v2rayN:/z_最好会点小魔法"
-REPO_2 = "2dust/v2rayNG:/z_最好会点小魔法"
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "your-bucket-name"
 
 [observability.logs]
 enabled = true
