@@ -299,7 +299,7 @@ export async function handleApiStatus(worker, env) {
   if (repoConfigs.length > 0) {
     for (const config of repoConfigs) {
       try {
-        const repoKey = `repo:${config.repo}`;
+        const repoKey = "repo:" + config.repo;
         const versionInfoStr = await env.SYNC_STATUS.get(repoKey);
         
         if (versionInfoStr) {
@@ -341,14 +341,14 @@ export async function handleApiStatus(worker, env) {
           });
         }
       } catch (error) {
-        console.error(`加载仓库 ${config.repo} 状态信息失败:`, error);
+        console.error("加载仓库 " + config.repo + " 状态信息失败:", error);
         updatedRepos.push({
           repo: config.repo,
           version: "未知",
           date: "-",
           path: config.path,
           status: "error",
-          message: `加载状态失败: ${error.message}`
+          message: "加载状态失败: " + error.message
         });
       }
     }

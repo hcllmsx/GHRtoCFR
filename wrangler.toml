@@ -1,12 +1,12 @@
 name = "ghr-to-cfr"
-main = "src/index.js"
+main = "./dist/index.js"
 compatibility_date = "2025-01-01"
 
 [site]
 bucket = "./public"
 
 [build]
-command = "echo 'No build step required'"
+command = "npm run build"
 watch_dir = "src"
 
 [[rules]]

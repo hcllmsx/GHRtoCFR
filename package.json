@@ -4,13 +4,15 @@
   "description": "GitHub Releases to Cloudflare R2 Sync Worker",
   "main": "src/index.js",
   "scripts": {
-    "build": "echo 'No build step required'",
+    "build": "node build.js",
     "deploy": "wrangler deploy"
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.20240208.0"
   },
   "devDependencies": {
+    "esbuild": "^0.20.1",
     "wrangler": "^4.6.0"
-  }
+  },
+  "type": "module"
 } 
