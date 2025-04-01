@@ -9,8 +9,9 @@ bucket = "./public"
 command = "echo 'No build step required'"
 watch_dir = "src"
 
-[rules]
+[[rules]]
 type = "ESModule"
+globs = ["**/*.js"]
 
 [[rules]]
 type = "Text"
