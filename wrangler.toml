@@ -1,4 +1,4 @@
-name = "ghrtocfr"
+name = "ghr-to-cfr"
 main = "src/index.js"
 compatibility_date = "2025-01-01"
 
@@ -6,19 +6,21 @@ compatibility_date = "2025-01-01"
 bucket = "./public"
 
 [build]
-command = "npm run build"
+command = "echo 'No build step required'"
 watch_dir = "src"
 
-[[rules]]
+[rules]
 type = "ESModule"
-globs = ["**/*.js"]
 
 [[rules]]
 type = "Text"
 globs = ["**/*.css"]
+fallthrough = true
 
 [vars]
 ENVIRONMENT = "production"
+REPO_1 = "2dust/v2rayN:/z_最好会点小魔法"
+REPO_2 = "2dust/v2rayNG:/z_最好会点小魔法"
 
 [[kv_namespaces]]
 binding = "SYNC_STATUS"
